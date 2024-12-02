@@ -1,0 +1,13 @@
+*.bak
+*.echo
+*.mti
+*.mpf
+*.qws
+*.txt
+*.wlf
+**/db
+**/incremental_db
+**/output_files/*
+**/!output_files/*.cdf
+**/simulation
+**/work
