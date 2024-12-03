@@ -13,7 +13,6 @@ end rising_edge_detector;
 
 architecture behavioral of rising_edge_detector is
 
-	signal r_metastable : std_logic;
 	signal r_first : std_logic;
 	signal r_second : std_logic;
 
@@ -21,12 +20,10 @@ begin
 	process(i_clk, i_rst)														
  	begin																							
 		if (i_rst = '1')  then
-			r_metastable <= '0';
 			r_first <= '0';																		
 			r_second <= '0';
 		elsif rising_edge (i_clk) then												
-			r_metastable <= i_signal;
-			r_first <= r_metastable;
+			r_first <= i_signal;
 			r_second <= r_first;																																				
 		end if;																					
 	end process;																

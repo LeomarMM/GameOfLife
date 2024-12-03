@@ -191,6 +191,7 @@ begin
 		i_signal		=> i_v_blank,
 		o_edge_up	=> w_v_blank_edge
 	);
+	
 	-- Cell position register
 	process(i_clk, t_mach)
 	begin

@@ -46,7 +46,7 @@ begin
 	w_hsync <= '0' when r_column > s_columns+s_hfporch and r_column <= s_columns+s_hfporch+s_hsynpulse else '1';
 	w_vsync <= '0' when r_row > s_rows+s_vfporch and r_row <= s_rows+s_vfporch+s_vsynpulse else '1';
 	w_v_blank <= '1' when (r_row > s_rows and r_row <= s_rows+s_vfporch+s_vsynpulse+s_vbporch) or r_row = 0 else '0';
-	
+
 	process(i_pixelclk, i_rst)
 	begin
 		if(i_rst = '1') then

@@ -44,7 +44,7 @@ begin
 	o_gram_wren <= '1' when t_mach = WRITE_MEM else '0';
 	
 	o_vram_addr <= std_logic_vector(to_unsigned(w_vram_addr, 13));
-	o_vram_data <= "11" when r_data = '1' else "10";
+	o_vram_data <= "10" when r_data = '1' else "11";
 	o_vram_wren <= '1' when t_mach = WRITE_MEM else '0';
 	
 	o_idle <= '1' when t_mach = IDLE else '0';

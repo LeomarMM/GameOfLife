@@ -113,6 +113,20 @@ architecture behavioural of game_of_life_top is
 	);
 	end component;
 
+	component FIFO
+	PORT
+	(
+		data			: in std_logic_vector (0 downto 0);
+		rdclk			: in std_logic;
+		rdreq			: in std_logic;
+		wrclk			: in std_logic;
+		wrreq			: in std_logic;
+		q				: out std_logic_vector (0 downto 0);
+		rdempty		: out std_logic;
+		wrfull		: out std_logic 
+	);
+	end component;
+
 	signal w_pixelclk			:	std_logic;
 	signal w_rst				:	std_logic;
 	signal w_enable			:	std_logic;
@@ -133,7 +147,13 @@ architecture behavioural of game_of_life_top is
 	signal w_gram_data		:	std_logic_vector (0 downto 0);
 	signal w_gram_addr		:	std_logic_vector (10 downto 0);
 	signal w_gram_wren		:	std_logic;
-
+	signal w_fifo_rdreq		:	std_logic;
+	signal w_fifo_wrreq		:	std_logic;
+	signal w_fifo_q_vec		:	std_logic_vector (0 downto 0);
+	signal w_fifo_q			:	std_logic;
+	signal w_fifo_rdempty	:	std_logic;
+	signal w_fifo_wrfull		:	std_logic;
+	
 begin
 
 	VGA : vga_controller
@@ -173,7 +193,7 @@ begin
 	(
 		i_clk				=> i_clk,
 		i_rst				=> w_rst,
-		i_v_blank		=> w_v_blank,
+		i_v_blank		=> w_fifo_q,
 		i_frame_delay	=> 30,
 		i_gram_q			=> w_gram_q(0),
 		i_grom_q			=> w_prom_q(0),
@@ -224,6 +244,22 @@ begin
 		q			=> w_gram_q
 	);
 	
+	FIF : FIFO
+	port map
+	(
+		data		=> (0 => w_v_blank),
+		rdclk		=> i_clk,
+		rdreq		=> w_fifo_rdreq,
+		wrclk		=> "not"(w_pixelclk),
+		wrreq		=> w_fifo_wrreq,
+		q			=> w_fifo_q_vec,
+		rdempty	=> w_fifo_rdempty,
+		wrfull	=> w_fifo_wrfull
+	);
+	
+	w_fifo_wrreq <= not w_fifo_wrfull;
+	w_fifo_rdreq <= not w_fifo_rdempty;
+	w_fifo_q <= w_fifo_q_vec(0);
 	w_rst <= "not"(i_rst) and not w_locked;
 	o_rst <= w_rst;
 	
