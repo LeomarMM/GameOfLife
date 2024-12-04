@@ -10,11 +10,12 @@ port
 	i_start		:	in		std_logic;
 	i_row			:	natural range 31 downto 0;
 	i_column		:	natural range 31 downto 0;
+	i_select		:	natural range 3 downto 0;
 	i_grom_q		:	in		std_logic;
 	o_gram_data	:	out	std_logic;
 	o_gram_addr	:	out	std_logic_vector(10 downto 0);
 	o_gram_wren	:	out	std_logic;
-	o_grom_addr	:	out	std_logic_vector(9 downto 0);
+	o_grom_addr	:	out	std_logic_vector(11 downto 0);
 	o_vram_data	:	out	std_logic_vector(1 downto 0);
 	o_vram_addr	:	out	std_logic_vector(12 downto 0);
 	o_vram_wren	:	out	std_logic;
@@ -30,15 +31,16 @@ architecture behavioural of load_pattern_from_rom is
 	signal r_column		:	natural range 31 downto 0 := 0;
 	signal r_row			:	natural range 31 downto 0 := 0;
 	signal r_data			:	std_logic := '0';
-	signal w_address		:	natural range 1023 downto 0 := 0;
-	signal w_vram_addr	:	natural range 4799 downto 0 := 0;
+	signal w_address		:	natural range 1023 downto 0;
+	signal w_vram_addr	:	natural range 4799 downto 0;
+	signal w_grom_addr	:	natural range 4095 downto 0;
 
 begin
 
 	w_address <= r_column + 32*r_row;
 	w_vram_addr <= 1544 + r_column + 80*r_row;
-	
-	o_grom_addr <= std_logic_vector(to_unsigned(w_address, 10));
+	w_grom_addr <= w_address + 1024*i_select;
+	o_grom_addr <= std_logic_vector(to_unsigned(w_grom_addr, 12));
 	o_gram_addr <= std_logic_vector(to_unsigned(w_address, 11));
 	o_gram_data <= r_data;
 	o_gram_wren <= '1' when t_mach = WRITE_MEM else '0';

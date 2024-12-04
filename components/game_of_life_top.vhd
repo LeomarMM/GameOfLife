@@ -6,12 +6,13 @@ port
 (
 	i_clk			:	in		std_logic;
 	i_rst			:	in		std_logic;
+	i_buttons	:	in		std_logic_vector(2 downto 0);
 	o_hsync		:	out	std_logic;
 	o_vsync		:	out	std_logic;
 	o_red			:	out	std_logic;
 	o_green		:	out	std_logic;
 	o_blue		:	out	std_logic;
-	o_rst			:	out	std_logic
+	o_leds		:	out	std_logic_vector(3 downto 0)
 );
 end game_of_life_top;
 
@@ -58,19 +59,34 @@ architecture behavioural of game_of_life_top is
 		i_clk				:	in		std_logic;
 		i_rst				:	in		std_logic;
 		i_v_blank		:	in		std_logic;
-		i_frame_delay	:	in		natural range 599 downto 0;
 		i_gram_q			:	in		std_logic;
 		i_grom_q			:	in		std_logic;
+		i_buttons		:	in		std_logic_vector(2 downto 0);
 		o_gram_data		:	out	std_logic;
 		o_gram_addr		:	out	std_logic_vector(10 downto 0);
 		o_gram_wren		:	out	std_logic;
-		o_grom_addr		:	out	std_logic_vector(9 downto 0);
+		o_grom_addr		:	out	std_logic_vector(11 downto 0);
 		o_vram_data		:	out	std_logic_vector(1 downto 0);
 		o_vram_addr		:	out	std_logic_vector(12 downto 0);
 		o_vram_wren		:	out	std_logic
 	);
 	end component;
-	
+
+	component debouncer
+	generic
+	(
+		clk_freq			:	natural := 50_000_000;
+		ms_delay			:	natural := 15
+	);
+	port
+	(
+		i_clk				:	in		std_logic;
+		i_rst				:	in		std_logic;
+		i_signal			:	in		std_logic;
+		o_signal			:	out	std_logic
+	);
+	end component;
+
 	component CHR_ROM
 	port
 	(
@@ -83,7 +99,7 @@ architecture behavioural of game_of_life_top is
 	component PATTERN_ROM
 	port
 	(
-		address		: in std_logic_vector (9 downto 0);
+		address		: in std_logic_vector (11 downto 0);
 		clock			: in std_logic  := '1';
 		q				: out std_logic_vector (0 downto 0)
 	);
@@ -93,10 +109,10 @@ architecture behavioural of game_of_life_top is
 	PORT
 	(
 		address		: IN STD_LOGIC_VECTOR (10 DOWNTO 0);
-		clock		: IN STD_LOGIC  := '1';
-		data		: IN STD_LOGIC_VECTOR (0 DOWNTO 0);
-		wren		: IN STD_LOGIC ;
-		q		: OUT STD_LOGIC_VECTOR (0 DOWNTO 0)
+		clock			: IN STD_LOGIC  := '1';
+		data			: IN STD_LOGIC_VECTOR (0 DOWNTO 0);
+		wren			: IN STD_LOGIC ;
+		q				: OUT STD_LOGIC_VECTOR (0 DOWNTO 0)
 	);
 	end component;
 	
@@ -138,7 +154,7 @@ architecture behavioural of game_of_life_top is
 	signal w_chr_rom_addr	:	std_logic_vector (7 downto 0);
 	signal w_chr_rom_q		:	std_logic_vector (2 downto 0);
 	signal w_character		:	std_logic_vector (1 downto 0);
-	signal w_prom_addr		:	std_logic_vector (9 downto 0);
+	signal w_prom_addr		:	std_logic_vector (11 downto 0);
 	signal w_prom_q			:	std_logic_vector (0 downto 0);
 	signal w_vram_data		:	std_logic_vector (1 downto 0);
 	signal w_vram_wr_addr	:	std_logic_vector (12 downto 0);
@@ -153,7 +169,7 @@ architecture behavioural of game_of_life_top is
 	signal w_fifo_q			:	std_logic;
 	signal w_fifo_rdempty	:	std_logic;
 	signal w_fifo_wrfull		:	std_logic;
-	
+	signal w_buttons			:	std_logic_vector(2 downto 0);
 begin
 
 	VGA : vga_controller
@@ -194,9 +210,9 @@ begin
 		i_clk				=> i_clk,
 		i_rst				=> w_rst,
 		i_v_blank		=> w_fifo_q,
-		i_frame_delay	=> 30,
 		i_gram_q			=> w_gram_q(0),
 		i_grom_q			=> w_prom_q(0),
+		i_buttons		=> w_buttons,
 		o_gram_data		=> w_gram_data(0),
 		o_gram_addr		=> w_gram_addr,
 		o_gram_wren		=> w_gram_wren,
@@ -257,14 +273,45 @@ begin
 		wrfull	=> w_fifo_wrfull
 	);
 	
+	DEB0 : debouncer
+	port map
+	(
+		i_clk		=> i_clk,
+		i_rst		=> w_rst,
+		i_signal	=> i_buttons(0),
+		o_signal	=> w_buttons(0)
+	);
+
+	DEB1 : debouncer
+	port map
+	(
+		i_clk		=> i_clk,
+		i_rst		=> w_rst,
+		i_signal	=> i_buttons(1),
+		o_signal	=> w_buttons(1)
+	);
+
+	DEB2 : debouncer
+	port map
+	(
+		i_clk		=> i_clk,
+		i_rst		=> w_rst,
+		i_signal	=> i_buttons(2),
+		o_signal	=> w_buttons(2)
+	);
+
 	w_fifo_wrreq <= not w_fifo_wrfull;
 	w_fifo_rdreq <= not w_fifo_rdempty;
 	w_fifo_q <= w_fifo_q_vec(0);
-	w_rst <= "not"(i_rst) and not w_locked;
-	o_rst <= w_rst;
+	w_rst <= not i_rst and not w_locked;
 	
 	o_red <= w_chr_rom_q(2) when w_enable = '1' else '0';
 	o_green <= w_chr_rom_q(1) when w_enable = '1' else '0';
 	o_blue <= w_chr_rom_q(0) when w_enable = '1' else '0';
 	
+	o_leds(0) <= not w_rst;
+	o_leds(1) <= w_buttons(0);
+	o_leds(2) <= w_buttons(1);
+	o_leds(3) <= w_buttons(2);
+
 end behavioural;
